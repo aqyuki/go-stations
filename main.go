@@ -51,7 +51,8 @@ func realMain() error {
 	defer todoDB.Close()
 
 	// NOTE: 新しいエンドポイントの登録はrouter.NewRouterの内部で行うようにする
-	mux := middleware.Recovery((router.NewRouter(todoDB)))
+	// 呼び出し順は、Recovery -> BoxOSInfo -> Logging(before) -> handler -> Logging(after) -> Recovery(defer)
+	mux := middleware.Recovery(middleware.BoxOSInfo(middleware.Logging((router.NewRouter(todoDB)))))
 
 	// TODO: サーバーをlistenする
 	if err := http.ListenAndServe(defaultPort, mux); err != nil {
