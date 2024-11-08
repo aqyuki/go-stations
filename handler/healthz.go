@@ -8,6 +8,8 @@ import (
 	"github.com/TechBowl-japan/go-stations/model"
 )
 
+var _ http.Handler = (*HealthzHandler)(nil)
+
 // A HealthzHandler implements health check endpoint.
 type HealthzHandler struct{}
 

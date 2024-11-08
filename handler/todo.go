@@ -12,6 +12,8 @@ import (
 	"github.com/TechBowl-japan/go-stations/service"
 )
 
+var _ http.Handler = (*TODOHandler)(nil)
+
 // A TODOHandler implements handling REST endpoints.
 type TODOHandler struct {
 	svc *service.TODOService
