@@ -22,8 +22,10 @@ func main() {
 func realMain() error {
 	// config values
 	const (
-		defaultPort   = ":8080"
-		defaultDBPath = ".sqlite3/todo.db"
+		defaultPort     = ":8080"
+		defaultDBPath   = ".sqlite3/todo.db"
+		defaultUserID   = "admin"
+		defaultPassword = "password"
 	)
 
 	port := os.Getenv("PORT")
@@ -34,6 +36,16 @@ func realMain() error {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
 		dbPath = defaultDBPath
+	}
+
+	userID := os.Getenv("BASIC_AUTH_USER_ID")
+	if userID == "" {
+		userID = defaultUserID
+	}
+
+	password := os.Getenv("BASIC_AUTH_PASSWORD")
+	if password == "" {
+		password = defaultPassword
 	}
 
 	// set time zone
@@ -52,7 +64,7 @@ func realMain() error {
 
 	// NOTE: 新しいエンドポイントの登録はrouter.NewRouterの内部で行うようにする
 	// 呼び出し順は、Recovery -> BoxOSInfo -> Logging(before) -> handler -> Logging(after) -> Recovery(defer)
-	mux := middleware.Recovery(middleware.BoxOSInfo(middleware.Logging((router.NewRouter(todoDB)))))
+	mux := middleware.Recovery(middleware.BoxOSInfo(middleware.Logging(router.NewRouter(todoDB, userID, password))))
 
 	// TODO: サーバーをlistenする
 	if err := http.ListenAndServe(defaultPort, mux); err != nil {
