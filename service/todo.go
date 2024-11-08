@@ -53,7 +53,7 @@ func (s *TODOService) ReadTODO(ctx context.Context, prevID, size int64) ([]*mode
 
 	var rows *sql.Rows
 	var err error
-	todos := make([]*model.TODO, size)
+	todos := make([]*model.TODO, 0,size)
 
 	if prevID == 0 {
 		rows, err = s.db.QueryContext(ctx, read, size)
