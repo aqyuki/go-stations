@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -37,6 +38,7 @@ func (h *TODOHandler) Create(ctx context.Context, req *model.CreateTODORequest) 
 func (h *TODOHandler) Read(ctx context.Context, req *model.ReadTODORequest) (*model.ReadTODOResponse, error) {
 	todos, err := h.svc.ReadTODO(ctx, req.PrevID, req.Size)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	return &model.ReadTODOResponse{TODOs: todos}, nil
@@ -56,7 +58,9 @@ func (h *TODOHandler) Update(ctx context.Context, req *model.UpdateTODORequest) 
 
 // Delete handles the endpoint that deletes the TODOs.
 func (h *TODOHandler) Delete(ctx context.Context, req *model.DeleteTODORequest) (*model.DeleteTODOResponse, error) {
-	_ = h.svc.DeleteTODO(ctx, nil)
+	if err := h.svc.DeleteTODO(ctx, req.IDs); err != nil {
+		return nil, err
+	}
 	return &model.DeleteTODOResponse{}, nil
 }
 
@@ -69,6 +73,8 @@ func (h *TODOHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		h.handleUpdate(w, r)
 	case http.MethodGet:
 		h.handleRead(w, r)
+	case http.MethodDelete:
+		h.handleDelete(w, r)
 	}
 }
 
@@ -112,7 +118,7 @@ func (h *TODOHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 	todo, err := h.Update(r.Context(), &req)
 	if err != nil {
-		if errors.Is(err, model.ErrNotFound{}) {
+		if errors.Is(err, &model.ErrNotFound{}) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 		} else {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -147,6 +153,34 @@ func (h *TODOHandler) handleRead(w http.ResponseWriter, r *http.Request) {
 	res, err := h.Read(r.Context(), &req)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(&res); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *TODOHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
+	var req model.DeleteTODORequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		http.Error(w, "ids is required", http.StatusBadRequest)
+		return
+	}
+
+	res, err := h.Delete(r.Context(), &req)
+	if err != nil {
+		if errors.Is(err, &model.ErrNotFound{}) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
 

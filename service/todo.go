@@ -119,18 +119,20 @@ func (s *TODOService) DeleteTODO(ctx context.Context, ids []int64) error {
 		return err
 	}
 
-	args := make([]interface{}, len(ids))
-	for i, v := range ids {
-		args[i] = v
+	args := make([]interface{}, 0)
+	for _, v := range ids {
+		args = append(args, v)
 	}
 	res, err := stmt.ExecContext(ctx, args...)
 	if err != nil {
 		return err
 	}
 
-	if count, err := res.RowsAffected(); err != nil {
+	count, err := res.RowsAffected()
+	if err != nil {
 		return err
-	} else if count == 0 {
+	}
+	if count == 0 {
 		return &model.ErrNotFound{}
 	}
 	return nil
